@@ -31,17 +31,17 @@ HEX_RE = re.compile(r"^#[0-9a-fA-F]{6}$")   # допустимый формат 
 # Формат значения: #RRGGBB. В скобках указан оригинальный цвет CraftBeerPi4.
 # --------------------------------------------------------------------------
 COLORS = {
-    "UI_PRIMARY_COLOR":        ("#e9b649", "Primary color: buttons, sliders, switches (original #00FF00)"),
-    "UI_SECONDARY_COLOR":      ("#8A2535", "Secondary color: Stop, Cancel, Close, No buttons (original #f50057)"),
-    "UI_SECONDARY_DARK_COLOR": ("#6A040F", "Secondary color on hover and press (original #c51162)"),
-    "UI_SECONDARY_LIGHT_COLOR": ("#ff4081", "Secondary light shade, rarely used (original #ff4081)"),
-    "UI_APPBAR_COLOR":         ("#e9b649", "Top application bar (original #00FF00)"),
-    "UI_PAGE_BG_COLOR":        ("#444444", "Page background (original #444444)"),
-    "UI_PAPER_COLOR":          ("#333333", "Background of dialogs, menus and cards (original #333333)"),
-    "UI_CARD_BG_COLOR":        ("#2c282e", "Background of sensor and target temperature blocks (original #2c282e)"),
-    "UI_PROGRESS_BAR_COLOR":   ("#e9b649", "Power bar on Actor buttons (original #00FF00)"),
-    "UI_PROGRESS_BG_COLOR":    ("#2C1810", "Background of the power bar (original #008800)"),
-    "UI_CHART_LINE_COLOR":     ("#e9b649", "Default chart line color (original #00FF00)"),
+    "UI_THEME_PRIMARY_COLOR":        ("#e9b649", "Primary color: buttons, sliders, switches (original #00FF00)"),
+    "UI_THEME_SECONDARY_COLOR":      ("#8A2535", "Secondary color: Stop, Cancel, Close, No buttons (original #f50057)"),
+    "UI_THEME_SECONDARY_DARK_COLOR": ("#6A040F", "Secondary color on hover and press (original #c51162)"),
+    "UI_THEME_SECONDARY_LIGHT_COLOR": ("#ff4081", "Secondary light shade, rarely used (original #ff4081)"),
+    "UI_THEME_APPBAR_COLOR":         ("#e9b649", "Top application bar (original #00FF00)"),
+    "UI_THEME_PAGE_BG_COLOR":        ("#444444", "Page background (original #444444)"),
+    "UI_THEME_PAPER_COLOR":          ("#333333", "Background of dialogs, menus and cards (original #333333)"),
+    "UI_THEME_CARD_BG_COLOR":        ("#2c282e", "Background of sensor and target temperature blocks (original #2c282e)"),
+    "UI_THEME_PROGRESS_BAR_COLOR":   ("#e9b649", "Power bar on Actor buttons (original #00FF00)"),
+    "UI_THEME_PROGRESS_BG_COLOR":    ("#2C1810", "Background of the power bar (original #008800)"),
+    "UI_THEME_CHART_LINE_COLOR":     ("#e9b649", "Default chart line color (original #00FF00)"),
 }
 
 # --------------------------------------------------------------------------
@@ -167,11 +167,11 @@ def read_theme(cbpi):
         return v
 
     C = {k: color(n) for k, n in (
-        ("primary", "UI_PRIMARY_COLOR"), ("secondary", "UI_SECONDARY_COLOR"),
-        ("secondary_dark", "UI_SECONDARY_DARK_COLOR"), ("secondary_light", "UI_SECONDARY_LIGHT_COLOR"),
-        ("appbar", "UI_APPBAR_COLOR"), ("page_bg", "UI_PAGE_BG_COLOR"), ("paper", "UI_PAPER_COLOR"),
-        ("card_bg", "UI_CARD_BG_COLOR"), ("progress_bar", "UI_PROGRESS_BAR_COLOR"),
-        ("progress_bg", "UI_PROGRESS_BG_COLOR"), ("chart_line", "UI_CHART_LINE_COLOR"))}
+        ("primary", "UI_THEME_PRIMARY_COLOR"), ("secondary", "UI_THEME_SECONDARY_COLOR"),
+        ("secondary_dark", "UI_THEME_SECONDARY_DARK_COLOR"), ("secondary_light", "UI_THEME_SECONDARY_LIGHT_COLOR"),
+        ("appbar", "UI_THEME_APPBAR_COLOR"), ("page_bg", "UI_THEME_PAGE_BG_COLOR"), ("paper", "UI_THEME_PAPER_COLOR"),
+        ("card_bg", "UI_THEME_CARD_BG_COLOR"), ("progress_bar", "UI_THEME_PROGRESS_BAR_COLOR"),
+        ("progress_bg", "UI_THEME_PROGRESS_BG_COLOR"), ("chart_line", "UI_THEME_CHART_LINE_COLOR"))}
     F = {"main": font("UI_FONT_MAIN"), "plot": font("UI_FONT_PLOT"), "cards": font("UI_FONT_CARDS")}
     return C, F
 
@@ -226,8 +226,26 @@ class UITheme(CBPiExtension):
         await self.cbpi.config.add(name, value, type=type_, description=description,
                                    source=SOURCE, options=options)
 
+    async def _migrate_old_names(self):
+        """Старые версии плагина называли цвета UI_<ИМЯ>_COLOR. Теперь UI_THEME_<ИМЯ>_COLOR
+        (так в Settings шрифты идут перед цветами). Переносим сохранённые значения и удаляем старые."""
+        for new in COLORS:
+            old = "UI_" + new[len("UI_THEME_"):]
+            raw_old = self.cbpi.config.cache.get(old)
+            if raw_old is None:
+                continue
+            raw_new = self.cbpi.config.cache.get(new)
+            if raw_new is None and raw_old.value not in (None, ""):
+                await self.cbpi.config.add(new, raw_old.value, type=ConfigType.STRING, description="",
+                                           source=SOURCE, options=None)
+            try:
+                await self.cbpi.config.remove(old)
+            except Exception as e:
+                logger.warning("UITheme: cannot remove old setting %s: %s", old, e)
+
     async def run(self):
         try:
+            await self._migrate_old_names()
             for name, (default, desc) in COLORS.items():
                 await self._ensure(name, default, desc + ". Format #RRGGBB or Original", ConfigType.STRING)
             options = [{"label": l, "value": v} for l, v in FONT_OPTIONS]
