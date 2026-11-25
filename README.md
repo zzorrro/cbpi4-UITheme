@@ -12,13 +12,13 @@
 
 Остальные изменения интерфейса (размеры окон и уведомлений, кнопки +/-) остаются в [cbpi4-ui-patch](https://github.com/zzorrro/cbpi4-ui-patch).
 
-## Установка
-
-    sudo pip3 install git+https://github.com/zzorrro/cbpi4-UITheme
-    sudo systemctl restart craftbeerpi
-
-(если CBPi4 установлен в виртуальное окружение, используйте pip из него).
 
 ## Свои значения по умолчанию и новые шрифты
 
 Правьте словари COLORS и FONT_OPTIONS в начале `cbpi4_UITheme/__init__.py`, инструкция в комментариях. Сохранённые на сервере значения при обновлении не затираются. Неверный цвет заменяется значением по умолчанию при перезапуске, а на странице игнорируется.
+
+## Установка одной командой
+
+    curl -fsSL https://raw.githubusercontent.com/zzorrro/cbpi4-UITheme/main/install.sh | sudo bash
+
+Скрипт сам находит Python, в котором стоит CraftBeerPi4 (в том числе виртуальное окружение), ставит плагин и перезапускает службу craftbeerpi. Если не нашёл: `sudo CBPI_PYTHON=/путь/к/python bash install.sh`. Удаление: `sudo bash install.sh remove`.
