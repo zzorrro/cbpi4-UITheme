@@ -37,6 +37,7 @@ COLORS = {
     "UI_THEME_SECONDARY_LIGHT_COLOR": ("#ff4081", "Secondary light shade, rarely used (original #ff4081)"),
     "UI_THEME_APPBAR_COLOR":         ("#e9b649", "Top application bar (original #00FF00)"),
     "UI_THEME_PAGE_BG_COLOR":        ("#444444", "Page background (original #444444)"),
+    "UI_THEME_DASHBOARD_BG_COLOR":   ("#272227", "Dashboard background behind elements (original #272227)"),
     "UI_THEME_PAPER_COLOR":          ("#333333", "Background of dialogs, menus and cards (original #333333)"),
     "UI_THEME_CARD_BG_COLOR":        ("#2c282e", "Background of sensor and target temperature blocks (original #2c282e)"),
     "UI_THEME_PROGRESS_BAR_COLOR":   ("#e9b649", "Power bar on Actor buttons (original #00FF00)"),
@@ -82,13 +83,14 @@ FONTS = {
 # ==========================================================================
 HEX = r'#[0-9a-fA-F]{3,8}'
 JS_RE = re.compile(r"/static/js/main\.[0-9a-f]+\.js$")
+CSS_RE = re.compile(r"/static/css/main\.[0-9a-f]+\.css$")
 
 
-def _gui_js_path(request_path):
-    """Путь к файлу main.*.js внутри установленного пакета cbpi4gui."""
+def _gui_js_path(request_path, kind="js"):
+    """Путь к файлу main.*.js (kind="js") или main.*.css (kind="css") внутри установленного пакета cbpi4gui."""
     import cbpi4gui
     name = request_path.rsplit("/", 1)[-1]
-    p = os.path.join(os.path.dirname(cbpi4gui.__file__), "build", "static", "js", name)
+    p = os.path.join(os.path.dirname(cbpi4gui.__file__), "build", "static", kind, name)
     return p if os.path.isfile(p) else None
 
 
@@ -150,6 +152,19 @@ def transform(s, C, F):
     return s, skipped
 
 
+def transform_css(s, C):
+    """Фон дашборда задан в main.*.css (классы divgrid и divnogrid). Подставляет выбранный цвет."""
+    skipped = []
+    if C.get("dashboard_bg"):
+        for old, new in (("divgrid{background:#272227;", "divgrid{background:%s;" % C["dashboard_bg"]),
+                         ("divnogrid{background:#272227}", "divnogrid{background:%s}" % C["dashboard_bg"])):
+            if s.count(old) != 1:
+                skipped.append("dashboard_bg: %s" % old)
+            else:
+                s = s.replace(old, new)
+    return s, skipped
+
+
 def read_theme(cbpi):
     """Читает текущие настройки; неверные значения и Original игнорируются (остаётся оригинал)."""
     def val(name):
@@ -169,7 +184,7 @@ def read_theme(cbpi):
     C = {k: color(n) for k, n in (
         ("primary", "UI_THEME_PRIMARY_COLOR"), ("secondary", "UI_THEME_SECONDARY_COLOR"),
         ("secondary_dark", "UI_THEME_SECONDARY_DARK_COLOR"), ("secondary_light", "UI_THEME_SECONDARY_LIGHT_COLOR"),
-        ("appbar", "UI_THEME_APPBAR_COLOR"), ("page_bg", "UI_THEME_PAGE_BG_COLOR"), ("paper", "UI_THEME_PAPER_COLOR"),
+        ("appbar", "UI_THEME_APPBAR_COLOR"), ("page_bg", "UI_THEME_PAGE_BG_COLOR"), ("dashboard_bg", "UI_THEME_DASHBOARD_BG_COLOR"), ("paper", "UI_THEME_PAPER_COLOR"),
         ("card_bg", "UI_THEME_CARD_BG_COLOR"), ("progress_bar", "UI_THEME_PROGRESS_BAR_COLOR"),
         ("progress_bg", "UI_THEME_PROGRESS_BG_COLOR"), ("chart_line", "UI_THEME_CHART_LINE_COLOR"))}
     F = {"main": font("UI_FONT_MAIN"), "plot": font("UI_FONT_PLOT"), "cards": font("UI_FONT_CARDS")}
@@ -202,6 +217,23 @@ async def theme_middleware(request, handler):
                                     headers={"Cache-Control": "no-cache"})
         except Exception as e:
             logger.error("UITheme: ошибка подстановки, отдаю оригинальный файл: %s", e)
+    if request.method == "GET" and CSS_RE.search(request.path):
+        try:
+            path = _gui_js_path(request.path, "css")
+            if path:
+                C, _F = read_theme(_CBPI[0])
+                key = (path, os.path.getmtime(path), C.get("dashboard_bg"))
+                if key not in _cache:
+                    with open(path, encoding="utf-8") as f:
+                        text = f.read()
+                    text, skipped = transform_css(text, C)
+                    if skipped:
+                        logger.warning("UITheme: замена в CSS пропущена (другая версия интерфейса?): %s", "; ".join(skipped))
+                    _cache[key] = text
+                return web.Response(text=_cache[key], content_type="text/css", charset="utf-8",
+                                    headers={"Cache-Control": "no-cache"})
+        except Exception as e:
+            logger.error("UITheme: ошибка подстановки CSS, отдаю оригинальный файл: %s", e)
     return await handler(request)
 
 

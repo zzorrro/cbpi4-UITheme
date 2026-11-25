@@ -22,3 +22,7 @@
     curl -fsSL https://raw.githubusercontent.com/zzorrro/cbpi4-UITheme/main/install.sh | sudo bash
 
 Скрипт сам находит Python, в котором стоит CraftBeerPi4 (в том числе виртуальное окружение), ставит плагин и перезапускает службу craftbeerpi. Если не нашёл: `sudo CBPI_PYTHON=/путь/к/python bash install.sh`. Удаление: `sudo bash install.sh remove`.
+
+## Фон дашборда
+
+Параметр UI_THEME_DASHBOARD_BG_COLOR (по умолчанию оригинальный #272227) задаёт цвет фона дашборда за элементами. Плагин подставляет его в main.*.css при отдаче браузеру, файлы на диске не меняются. Чтобы кнопка Actor совпала с фоном, впишите тот же цвет в свойство bgcolor кнопки.
