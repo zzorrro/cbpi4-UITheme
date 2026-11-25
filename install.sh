@@ -32,7 +32,7 @@ if [ -n "$CBPI_PYTHON" ]; then
 else
   CB="$(command -v cbpi 2>/dev/null || true)"
   [ -n "$CB" ] && add_py "$(head -1 "$CB" | sed -n 's/^#!\s*//p' | awk '{print $1}')"
-  for cb in $(find /home /root /opt /usr/local /srv -maxdepth 6 -path '*/bin/cbpi' -type f 2>/dev/null); do
+  for cb in $(find /home /root /opt /usr/local /srv -maxdepth 10 -path '*/bin/cbpi' -type f 2>/dev/null); do
     add_py "$(head -1 "$cb" | sed -n 's/^#!\s*//p' | awk '{print $1}')"
   done
   add_py "$(command -v python3 2>/dev/null || true)"
