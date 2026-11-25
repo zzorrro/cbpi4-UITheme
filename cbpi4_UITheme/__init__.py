@@ -39,7 +39,7 @@ COLORS = {
     "UI_THEME_PAGE_BG_COLOR":        ("#444444", "Page background (original #444444)"),
     "UI_THEME_DASHBOARD_BG_COLOR":   ("#272227", "Dashboard background behind elements (original #272227)"),
     "UI_THEME_PAPER_COLOR":          ("#333333", "Background of dialogs, menus and cards (original #333333)"),
-    "UI_THEME_CARD_BG_COLOR":        ("#2c282e", "Background of sensor and target temperature blocks (original #2c282e)"),
+    "UI_THEME_CARD_BG_COLOR":        ("#2c282e", "Background of the Steps lists (brewing and fermenter) and the dashboard editor panel (original #2c282e)"),
     "UI_THEME_PROGRESS_BAR_COLOR":   ("#e9b649", "Power bar on Actor buttons (original #00FF00)"),
     "UI_THEME_PROGRESS_BG_COLOR":    ("#2C1810", "Background of the power bar (original #008800)"),
     "UI_THEME_CHART_LINE_COLOR":     ("#e9b649", "Default chart line color (original #00FF00)"),
